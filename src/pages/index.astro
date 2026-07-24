@@ -1,0 +1,359 @@
+---
+const description =
+  'SydAI — coming soon. A new home for SydAI on the web.';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SydAI</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Orbitron display font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --text: #eef4ff;
+        --glow: rgba(64, 224, 255, 0.45);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: 'Orbitron', 'Avenir Next', 'Segoe UI', sans-serif;
+        color: var(--text);
+        background: #0a0e27;
+      }
+
+      /* Bottom layer: layered dark gradient base + drifting radial glows */
+      .gradient {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background: linear-gradient(
+          160deg,
+          #04050e 0%,
+          #0c0f2e 35%,
+          #1c1148 62%,
+          #05283a 100%
+        );
+      }
+
+      /* Two large soft radial glows that drift on alternating slow loops */
+      .gradient::before,
+      .gradient::after {
+        content: '';
+        position: absolute;
+        width: 80vmax;
+        height: 80vmax;
+        border-radius: 50%;
+        pointer-events: none;
+      }
+
+      .gradient::before {
+        top: -20vmax;
+        left: -20vmax;
+        background: radial-gradient(
+          circle,
+          rgba(124, 77, 255, 0.25) 0%,
+          rgba(124, 77, 255, 0) 60%
+        );
+        animation: glow-drift-a 40s ease-in-out infinite;
+      }
+
+      .gradient::after {
+        bottom: -22vmax;
+        right: -22vmax;
+        background: radial-gradient(
+          circle,
+          rgba(30, 200, 210, 0.22) 0%,
+          rgba(30, 200, 210, 0) 60%
+        );
+        animation: glow-drift-b 44s ease-in-out infinite;
+      }
+
+      @keyframes glow-drift-a {
+        0% {
+          transform: translate(0, 0);
+        }
+        50% {
+          transform: translate(8vmax, 6vmax);
+        }
+        100% {
+          transform: translate(0, 0);
+        }
+      }
+
+      @keyframes glow-drift-b {
+        0% {
+          transform: translate(0, 0);
+        }
+        50% {
+          transform: translate(-7vmax, -6vmax);
+        }
+        100% {
+          transform: translate(0, 0);
+        }
+      }
+
+      /* Middle layer: particle network canvas */
+      #network {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        display: block;
+        pointer-events: none;
+      }
+
+      /* Top layer: crossfading headline */
+      .stage {
+        position: fixed;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .layer {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        white-space: nowrap;
+        text-shadow: 0 0 24px var(--glow);
+      }
+
+      .brand {
+        font-weight: 700;
+        font-size: clamp(4rem, 14vw, 11rem);
+        letter-spacing: 0.02em;
+        opacity: 1;
+        animation: fade-brand 26s ease-in-out infinite;
+      }
+
+      .soon {
+        font-weight: 500;
+        font-size: clamp(2rem, 7vw, 5.5rem);
+        letter-spacing: 0.35em;
+        text-indent: 0.35em; /* offset trailing letter-spacing to keep centering */
+        opacity: 0;
+        animation: fade-soon 26s ease-in-out infinite;
+      }
+
+      /* 26s cycle = 10s hold + 3s fade + 10s hold + 3s fade.
+         38.46% = 10/26, 50% = 13/26, 88.46% = 23/26 */
+      @keyframes fade-brand {
+        0% {
+          opacity: 1;
+        }
+        38.46% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+        88.46% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      @keyframes fade-soon {
+        0% {
+          opacity: 0;
+        }
+        38.46% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+        88.46% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .gradient::before,
+        .gradient::after {
+          animation: none;
+        }
+        .brand {
+          animation: none;
+          opacity: 1;
+        }
+        .soon {
+          animation: none;
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="gradient"></div>
+    <canvas id="network"></canvas>
+    <div class="stage">
+      <div class="layer brand">SydAI</div>
+      <div class="layer soon">Coming soon</div>
+    </div>
+
+    <script>
+      const reduce = window.matchMedia(
+        '(prefers-reduced-motion: reduce)'
+      ).matches;
+
+      const canvas = document.getElementById('network');
+      const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
+
+      if (canvas && ctx && !reduce) {
+        const POINT_COUNT = 60;
+        const LINK_DIST = 140;
+        const DOT_RADIUS = 1.6;
+        const HALO_RADIUS = DOT_RADIUS * 6;
+        const start = performance.now();
+        let width = 0;
+        let height = 0;
+        let dpr = 1;
+        let points = [];
+
+        function resize() {
+          const oldWidth = width;
+          const oldHeight = height;
+          dpr = Math.min(window.devicePixelRatio || 1, 2);
+          width = window.innerWidth;
+          height = window.innerHeight;
+          canvas.width = Math.floor(width * dpr);
+          canvas.height = Math.floor(height * dpr);
+          canvas.style.width = width + 'px';
+          canvas.style.height = height + 'px';
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+          // Preserve the particle field: rescale positions proportionally.
+          if (oldWidth > 0 && oldHeight > 0) {
+            const sx = width / oldWidth;
+            const sy = height / oldHeight;
+            for (const p of points) {
+              p.x *= sx;
+              p.y *= sy;
+            }
+          }
+        }
+
+        function seed() {
+          points = [];
+          for (let i = 0; i < POINT_COUNT; i++) {
+            points.push({
+              x: Math.random() * width,
+              y: Math.random() * height,
+              vx: (Math.random() - 0.5) * 0.25,
+              vy: (Math.random() - 0.5) * 0.25,
+              // Roughly one in four points glows.
+              glow: i % 4 === 0,
+              phase: Math.random() * Math.PI * 2,
+            });
+          }
+        }
+
+        function frame(now) {
+          const t = now - start;
+          ctx.clearRect(0, 0, width, height);
+
+          for (const p of points) {
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.x < 0 || p.x > width) p.vx *= -1;
+            if (p.y < 0 || p.y > height) p.vy *= -1;
+            p.x = Math.max(0, Math.min(width, p.x));
+            p.y = Math.max(0, Math.min(height, p.y));
+          }
+
+          // Pulsing glow halos behind the network (~6s sine, per-point phase).
+          ctx.globalAlpha = 1;
+          for (const p of points) {
+            if (!p.glow) continue;
+            const pulse =
+              0.4 + 0.6 * (0.5 + 0.5 * Math.sin((t / 6000) * Math.PI * 2 + p.phase));
+            const alpha = 0.35 * pulse;
+            const halo = ctx.createRadialGradient(
+              p.x,
+              p.y,
+              0,
+              p.x,
+              p.y,
+              HALO_RADIUS
+            );
+            halo.addColorStop(0, 'rgba(120, 230, 255, ' + alpha.toFixed(3) + ')');
+            halo.addColorStop(1, 'rgba(120, 230, 255, 0)');
+            ctx.fillStyle = halo;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, HALO_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.globalAlpha = 0.35;
+
+          for (let i = 0; i < points.length; i++) {
+            for (let j = i + 1; j < points.length; j++) {
+              const a = points[i];
+              const b = points[j];
+              const dx = a.x - b.x;
+              const dy = a.y - b.y;
+              const dist = Math.hypot(dx, dy);
+              if (dist < LINK_DIST) {
+                const strength = 1 - dist / LINK_DIST;
+                ctx.strokeStyle = 'rgba(64, 224, 255, ' + strength.toFixed(3) + ')';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(b.x, b.y);
+                ctx.stroke();
+              }
+            }
+          }
+
+          ctx.fillStyle = 'rgba(120, 230, 255, 0.9)';
+          for (const p of points) {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, DOT_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          requestAnimationFrame(frame);
+        }
+
+        resize();
+        seed();
+        window.addEventListener('resize', resize);
+        requestAnimationFrame(frame);
+      }
+    </script>
+  </body>
+</html>
