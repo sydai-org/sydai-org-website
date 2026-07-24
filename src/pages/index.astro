@@ -201,6 +201,43 @@ const description =
         }
       }
 
+      /* Konami easter-egg: fade the landing page out to reveal the shooter.
+         The #network particle canvas is intentionally NOT faded and keeps
+         running beneath the game. */
+      .gradient,
+      .stage {
+        transition: opacity 1.2s ease;
+      }
+
+      body.game-active {
+        background: #000;
+      }
+
+      body.game-active .gradient,
+      body.game-active .stage {
+        opacity: 0;
+      }
+
+      body.game-active .stage {
+        pointer-events: none;
+      }
+
+      /* Transparent host for the on-demand game canvas. Sits above the
+         particle network so gameplay draws over the live particle field,
+         but stays transparent so the particles remain visible behind and
+         beside the letterboxed playfield. */
+      #game-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 3;
+        background: transparent;
+        visibility: hidden;
+      }
+
+      body.game-active #game-overlay {
+        visibility: visible;
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .gradient::before,
         .gradient::after {
@@ -224,6 +261,7 @@ const description =
       <div class="layer brand">SydAI</div>
       <div class="layer soon">Coming soon</div>
     </div>
+    <div id="game-overlay"></div>
 
     <script>
       const reduce = window.matchMedia(
@@ -353,6 +391,66 @@ const description =
         seed();
         window.addEventListener('resize', resize);
         requestAnimationFrame(frame);
+      }
+
+      /* Hidden arcade easter egg: the Konami code (desktop) or a single
+         three-finger tap (touch) fades the landing page out and loads the
+         shooter on demand. No game/engine code is in the initial bundle —
+         it is fetched only when a trigger fires. */
+      const overlay = document.getElementById('game-overlay');
+
+      if (overlay) {
+        const KONAMI = [
+          'ArrowUp',
+          'ArrowUp',
+          'ArrowDown',
+          'ArrowDown',
+          'ArrowLeft',
+          'ArrowRight',
+          'ArrowLeft',
+          'ArrowRight',
+          'b',
+          'a',
+        ];
+        let konamiIndex = 0;
+        let gameOpen = false;
+
+        function onExit() {
+          gameOpen = false;
+          document.body.classList.remove('game-active');
+        }
+
+        async function launchGame() {
+          if (gameOpen) return;
+          gameOpen = true;
+          // Start the fade and the game-chunk fetch in parallel.
+          document.body.classList.add('game-active');
+          const mod = await import('../game/index.js');
+          mod.startGame(overlay, onExit);
+        }
+
+        window.addEventListener('keydown', (event) => {
+          const key =
+            event.key.length === 1 ? event.key.toLowerCase() : event.key;
+          if (key === KONAMI[konamiIndex]) {
+            konamiIndex++;
+            if (konamiIndex === KONAMI.length) {
+              konamiIndex = 0;
+              launchGame();
+            }
+          } else {
+            // Reset, but allow the mismatched key to start a fresh sequence.
+            konamiIndex = key === KONAMI[0] ? 1 : 0;
+          }
+        });
+
+        window.addEventListener(
+          'touchstart',
+          (event) => {
+            if (event.touches.length === 3) launchGame();
+          },
+          { passive: true }
+        );
       }
     </script>
   </body>

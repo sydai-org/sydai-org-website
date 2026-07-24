@@ -9,6 +9,7 @@
     "preview": "astro preview"
   },
   "devDependencies": {
-    "astro": "^5"
+    "astro": "^5",
+    "littlejsengine": "^1.18.24"
   }
 }
