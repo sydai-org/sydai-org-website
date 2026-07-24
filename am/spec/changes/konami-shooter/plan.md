@@ -1,5 +1,5 @@
 # konami-shooter
-Status: ready
+Status: active
 
 ## Idea
 
@@ -100,6 +100,18 @@ Binding decisions — executors must not re-make these:
   listeners, hide the overlay, and remove `game-active` so the gradient and
   headline fade back. The landing page is never unloaded and its particle
   canvas never stops — it runs continuously beneath the whole session.
+
+- **No engine watermark.** Call `setShowWatermark(false)` before `engineInit`
+  so the "LittleJS vX / fps" debug overlay never renders. If any version/FPS
+  overlay still appears (debug build), create `src/game/engine.js` re-exporting
+  everything from `littlejsengine/dist/littlejs.esm.min.js` (release build) and
+  switch all game imports to that single module.
+- **Player death sequence.** On hit (not invulnerable): spawn the explosion
+  animation + `playerDeath` SFX at the ship, hide the ship, clear all enemy
+  bullets (mines stay), decrement lives; after ~1.2s the ship re-enters from
+  below the bottom edge using the same entrance ease with ~2s invulnerability
+  blink. Enemies/waves keep running throughout. No lives left → game-over
+  screen instead of respawn.
 
 Risk: LittleJS engine lifecycle (start/stop per overlay session) — mitigated by
 keeping the overlay and engine instance alive after first launch and

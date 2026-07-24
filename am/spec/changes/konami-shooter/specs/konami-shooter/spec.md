@@ -68,9 +68,17 @@ id: shooter-gameplay
 The system SHALL provide a portrait (540×960 world, letterboxed) vertical
 shooter where the player ship moves horizontally at the bottom via arrow/AD
 keys or mouse on desktop and touch-drag on mobile, SHALL auto-fire
-continuously (no fire button), and SHALL give the player 3 lives with a brief
-respawn invulnerability. A double-shot power-up (10s) SHALL drop from tank and
-splitter enemies with ~25% probability.
+continuously (no fire button), and SHALL give the player 3 lives. When the
+player is hit, the ship SHALL explode (explosion animation + death sound),
+enemy bullets SHALL be cleared, and after ~1.2s the ship SHALL re-enter from
+below the bottom edge with ~2s of invulnerability blink — or the game-over
+screen SHALL show if no lives remain. A double-shot power-up (10s) SHALL drop
+from tank and splitter enemies with ~25% probability.
+
+#### Scenario: Player death resets the ship
+- **WHEN** the player's ship is hit with lives remaining
+- **THEN** it explodes with sound, enemy bullets clear, and after a beat the
+  ship rises back in from the bottom, blinking and invulnerable briefly
 
 #### Scenario: Desktop play
 - **WHEN** a desktop player moves via keys or mouse
@@ -119,7 +127,8 @@ on death), and miner (crosses horizontally laying mines).
 id: shooter-presentation-audio
 
 The system SHALL render all game art as runtime-generated pixel sprites (no
-image assets, image smoothing off) in a bright neon palette, and SHALL play
+image assets, image smoothing off) in a bright neon palette, SHALL NOT display
+the engine's debug watermark or version/FPS overlay, and SHALL play
 procedural audio: ZzFX sound effects (shoot, hit, explosion, power-up, death,
 boss phase) and an upbeat looping ZzFXM chiptune started with the game. A mute
 toggle (M key or on-screen icon) SHALL silence all audio; exiting the game

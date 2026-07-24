@@ -1,6 +1,6 @@
 ## 1. Trigger, overlay, and lazy skeleton
 
-- [ ] 1.1 Add `littlejsengine` (^1) to `package.json` devDependencies and run
+- [x] 1.1 Add `littlejsengine` (^1) to `package.json` devDependencies and run
       `npm install`. In `src/pages/index.astro`, add: a `body.game-active`
       CSS state that fades `.gradient` and `.stage` to opacity 0 over 1.2s
       (body background black; the `#network` particle canvas is NOT faded and
@@ -24,14 +24,14 @@
 
 ## 2. Assets (parallel)
 
-- [ ] 2.1 [P2] Create `src/game/sprites.js`: palette-indexed pixel arrays and a
+- [x] 2.1 [P2] Create `src/game/sprites.js`: palette-indexed pixel arrays and a
       builder that draws them onto an offscreen canvas sprite sheet (16×16
       tiles, smoothing off) per plan.md — player ship, the 6 enemies (drone,
       darter, weaver, tank, splitter, miner), boss mothership (multi-tile),
       player/enemy bullets, mine, double-shot power-up, 4-frame explosion, and
       2-frame idle variants where specified. Neon palette (cyan/magenta/lime/
       amber on near-black). Export the sheet plus named tile indices/sizes.
-- [ ] 2.2 [P2] Create `src/game/audio.js`: ZzFX effect definitions (shoot,
+- [x] 2.2 [P2] Create `src/game/audio.js`: ZzFX effect definitions (shoot,
       enemy hit, explosion, power-up, player death, boss phase change), one
       upbeat looping ZzFXM chiptune track, and an API
       `{ play(name), startMusic(), stopMusic(), toggleMute(), muted }` with
@@ -40,7 +40,7 @@
 
 ## 3. Core gameplay
 
-- [ ] 3.1 In `src/game/index.js` (replacing the placeholder scene), implement
+- [x] 3.1 In `src/game/index.js` (replacing the placeholder scene), implement
       the core loop per plan.md: entrance choreography (player ship enters
       from below the bottom edge easing up to its anchor over ~0.9s, input and
       auto-fire disabled until arrival), bottom-anchored ship with
@@ -53,7 +53,7 @@
 
 ## 4. Enemies, levels, boss
 
-- [ ] 4.1 Create `src/game/levels.js` with data-driven wave tables and
+- [x] 4.1 Create `src/game/levels.js` with data-driven wave tables and
       implement the six enemy behaviors from the spec (drone sine descent;
       darter dive at player column; weaver zigzag + aimed shots; tank 3 HP
       slow; splitter → two mini-drones on death; miner horizontal crossing
@@ -63,15 +63,30 @@
       from the top. Wire levels 1 (intro: drones/darters) and 2 (all six,
       denser), with "LEVEL n" transition cards, tank/splitter ~25% power-up
       drops, and per-enemy scores.
-- [ ] 4.2 Implement the level-3 boss per plan.md: 60 HP multi-tile mothership,
+- [x] 4.2 Implement the level-3 boss per plan.md: 60 HP multi-tile mothership,
       three HP-third phases (sweep spread → + aimed bursts → faster + drone
       escorts), hit-flash, multi-explosion death; then the game-over and
       victory screens showing score + session-best, dismissing back to the
       landing page via tap/key (calling the same exit path).
 
-## 5. Verification
+## 5. Playtest fixes
 
-- [ ] 5.1 Run `npm run build`; confirm it exits 0, `dist/index.html` exists,
+- [x] 5.1 In `src/game/index.js`, hide the engine watermark per plan.md:
+      call `setShowWatermark(false)` before `engineInit`. If any version/FPS
+      overlay still renders after that, create `src/game/engine.js`
+      re-exporting from `littlejsengine/dist/littlejs.esm.min.js` and switch
+      all `src/game/*` imports of `littlejsengine` to `./engine.js`.
+- [x] 5.2 In `src/game/index.js`, implement the player death sequence per
+      plan.md and the updated "Galaga-style gameplay" requirement: on a hit
+      while not invulnerable — explosion animation + `playerDeath` SFX at the
+      ship, ship hidden, all enemy bullets cleared (mines remain), lives
+      decremented; after ~1.2s the ship re-enters from below the bottom edge
+      with the existing entrance ease and ~2s invulnerability blink; waves keep
+      running throughout; if no lives remain show the game-over screen instead.
+
+## 6. Verification
+
+- [x] 6.1 Run `npm run build`; confirm it exits 0, `dist/index.html` exists,
       the game/engine code is emitted as a separate chunk under `dist/_astro/`
       that is NOT loaded by the initial page (inspect the built index.html and
       chunk imports), and the landing page's own markup/animations are
