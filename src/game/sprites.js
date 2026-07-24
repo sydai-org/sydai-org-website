@@ -370,7 +370,7 @@ function gridDims(grid) {
   return { w, h };
 }
 
-function paintGrid(ctx, grid, ox, oy, frameIndex) {
+function paintGrid(ctx, grid, ox, oy, frameIndex, white) {
   const engineColor = ENGINE_FRAMES[frameIndex % ENGINE_FRAMES.length];
   for (let y = 0; y < grid.length; y++) {
     const row = grid[y];
@@ -379,7 +379,8 @@ function paintGrid(ctx, grid, ox, oy, frameIndex) {
       if (ch === '.' || ch === ' ') continue;
       const color = ch === 'E' ? engineColor : PALETTE[ch];
       if (!color) continue; // unknown char -> transparent
-      ctx.fillStyle = color;
+      // white: paint the sprite's silhouette (same outline, all-white pixels)
+      ctx.fillStyle = white ? '#ffffff' : color;
       ctx.fillRect(ox + x, oy + y, 1, 1);
     }
   }
@@ -394,22 +395,31 @@ function createCanvas(w, h) {
 }
 
 function build() {
+  // Flatten defs into paint blocks: each sprite's animation frames, plus a
+  // one-frame all-white silhouette ("flash") variant drawn during hit-flash so
+  // the flash matches the sprite's outline instead of its bounding rectangle.
+  const blocks = [];
+  for (const [name, def] of Object.entries(SPRITE_DEFS)) {
+    const grids = def.grids || [def.grid];
+    blocks.push({ key: name, name, grids, frames: def.frames, white: false });
+    blocks.push({ key: name + '@flash', name, grids: [grids[0]], frames: 1, white: true });
+  }
+
   // First pass: lay blocks out to compute total height.
   const layout = {};
   let cursorX = 0;
   let cursorY = 0;
   let rowHeight = 0;
 
-  for (const [name, def] of Object.entries(SPRITE_DEFS)) {
-    const base = def.grids ? def.grids[0] : def.grid;
-    const { w, h } = gridDims(base);
-    const blockW = w * def.frames + GAP;
+  for (const block of blocks) {
+    const { w, h } = gridDims(block.grids[0]);
+    const blockW = w * block.frames + GAP;
     if (cursorX + blockW > SHEET_WIDTH) {
       cursorX = 0;
       cursorY += rowHeight + GAP;
       rowHeight = 0;
     }
-    layout[name] = { x: cursorX, y: cursorY, w, h, frames: def.frames };
+    layout[block.key] = { x: cursorX, y: cursorY, w, h, frames: block.frames };
     cursorX += blockW;
     rowHeight = Math.max(rowHeight, h);
   }
@@ -421,22 +431,27 @@ function build() {
 
   // Second pass: paint each frame.
   const sprites = {};
-  for (const [name, def] of Object.entries(SPRITE_DEFS)) {
-    const info = layout[name];
-    for (let f = 0; f < def.frames; f++) {
-      const grid = def.grids ? def.grids[f] : def.grid;
-      paintGrid(ctx, grid, info.x + f * info.w, info.y, f);
+  for (const block of blocks) {
+    const info = layout[block.key];
+    for (let f = 0; f < block.frames; f++) {
+      const grid = block.grids[f] || block.grids[0];
+      paintGrid(ctx, grid, info.x + f * info.w, info.y, f, block.white);
     }
-    // Exported metadata: sheet origin, per-frame size, frame count, and the
-    // horizontal stride between frames (== w). Consumers build a TileInfo per
-    // frame at { x: info.x + frame * info.w, y: info.y, w: info.w, h: info.h }.
-    sprites[name] = {
-      x: info.x,
-      y: info.y,
-      w: info.w,
-      h: info.h,
-      frames: info.frames,
-    };
+    if (block.white) {
+      // Attach the silhouette's sheet origin to its sprite's metadata.
+      sprites[block.name].flash = { x: info.x, y: info.y };
+    } else {
+      // Exported metadata: sheet origin, per-frame size, frame count, and the
+      // horizontal stride between frames (== w). Consumers build a TileInfo per
+      // frame at { x: info.x + frame * info.w, y: info.y, w: info.w, h: info.h }.
+      sprites[block.name] = {
+        x: info.x,
+        y: info.y,
+        w: info.w,
+        h: info.h,
+        frames: info.frames,
+      };
+    }
   }
 
   return { canvas, sprites, width: SHEET_WIDTH, height: sheetHeight };

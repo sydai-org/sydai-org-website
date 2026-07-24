@@ -97,6 +97,7 @@ const RED = rgb(1, 0.2, 0.27);
 // Built once in gameInit from the runtime sprite sheet; name -> TileInfo whose
 // .frame(n) selects animation frame n (frames are laid out horizontally).
 const tiles = {};
+const flashTiles = {}; // name -> white-silhouette TileInfo (hit flash)
 let spriteFrames = {}; // name -> frame count
 
 function tileFor(name, frame = 0) {
@@ -110,6 +111,8 @@ function initTiles() {
   for (const [name, s] of Object.entries(sheet.sprites)) {
     tiles[name] = new TileInfo(vec2(s.x, s.y), vec2(s.w, s.h), tex).setColumns(0);
     spriteFrames[name] = s.frames;
+    if (s.flash)
+      flashTiles[name] = new TileInfo(vec2(s.flash.x, s.flash.y), vec2(s.w, s.h), tex);
   }
 }
 
@@ -450,8 +453,10 @@ export class Enemy extends EngineObject {
       this.destroy();
   }
   render() {
-    if (this.flash > 0) {
-      drawTile(this.pos, this.size, this.tileInfo, WHITE, this.angle, this.mirror, rgb(1, 1, 1, 0.9));
+    const flashTile = flashTiles[this.def.sprite];
+    if (this.flash > 0 && flashTile) {
+      // White silhouette of the sprite (same outline, not a rectangle).
+      drawTile(this.pos, this.size, flashTile, WHITE, this.angle, this.mirror);
     } else {
       super.render();
     }
