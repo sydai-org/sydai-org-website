@@ -1,5 +1,5 @@
 # konami-shooter
-Status: active
+Status: verified
 
 ## Idea
 
